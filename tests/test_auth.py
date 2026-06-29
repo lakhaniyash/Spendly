@@ -39,7 +39,7 @@ def test_register_short_password(client):
 def test_register_duplicate_email(client):
     r = client.post("/register", data={
         "name": "Duplicate",
-        "email": "nitish@example.com",
+        "email": "yash.lakhani@smartsensesolutions.com",
         "password": "securepass123",
     })
     assert r.status_code == 200
@@ -62,8 +62,8 @@ def test_login_page_loads(client):
 
 def test_login_success(client):
     r = client.post("/login", data={
-        "email": "nitish@example.com",
-        "password": "user123",
+        "email": "yash.lakhani@smartsensesolutions.com",
+        "password": "Smart@12345",
     })
     assert r.status_code == 302
     assert "/dashboard" in r.headers["Location"]
@@ -71,7 +71,7 @@ def test_login_success(client):
 
 def test_login_wrong_password(client):
     r = client.post("/login", data={
-        "email": "nitish@example.com",
+        "email": "yash.lakhani@smartsensesolutions.com",
         "password": "wrongpassword",
     })
     assert r.status_code == 200
@@ -126,7 +126,7 @@ def test_profile_page_loads(user_client):
 
 def test_profile_update_name(user_client):
     r = user_client.post("/profile", data={
-        "name": "Updated Nitish",
+        "name": "Updated Yash",
         "current_password": "",
         "new_password": "",
     })
@@ -146,8 +146,8 @@ def test_profile_empty_name(user_client):
 
 def test_profile_new_password_too_short(user_client):
     r = user_client.post("/profile", data={
-        "name": "Nitish Kumar",
-        "current_password": "user123",
+        "name": "Yash Lakhani",
+        "current_password": "Smart@12345",
         "new_password": "short",
     })
     assert r.status_code == 200
@@ -156,7 +156,7 @@ def test_profile_new_password_too_short(user_client):
 
 def test_profile_wrong_current_password(user_client):
     r = user_client.post("/profile", data={
-        "name": "Nitish Kumar",
+        "name": "Yash Lakhani",
         "current_password": "wrongpassword",
         "new_password": "newpassword123",
     })
@@ -166,8 +166,8 @@ def test_profile_wrong_current_password(user_client):
 
 def test_profile_update_password_success(user_client):
     r = user_client.post("/profile", data={
-        "name": "Nitish Kumar",
-        "current_password": "user123",
+        "name": "Yash Lakhani",
+        "current_password": "Smart@12345",
         "new_password": "newpassword123",
     })
     assert r.status_code == 302

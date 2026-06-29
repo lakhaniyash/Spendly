@@ -129,7 +129,7 @@ def test_edit_expense_forbidden_for_other_user(user_client, app):
     with app.app_context():
         db = db_module.get_db()
         admin_id = db.execute(
-            "SELECT id FROM users WHERE email = 'admin@spendly.com'"
+            "SELECT id FROM users WHERE email = 'yash.lakhani+admin@smartsensesolutions.com'"
         ).fetchone()["id"]
         db.execute(
             "INSERT INTO expenses (user_id, title, amount, category, date) "
@@ -194,7 +194,7 @@ def test_admin_can_edit_any_expense(admin_client, app):
     with app.app_context():
         db = db_module.get_db()
         user_id = db.execute(
-            "SELECT id FROM users WHERE email = 'nitish@example.com'"
+            "SELECT id FROM users WHERE email = 'yash.lakhani@smartsensesolutions.com'"
         ).fetchone()["id"]
         expense_id = db.execute(
             "SELECT id FROM expenses WHERE user_id = ? LIMIT 1", (user_id,)
@@ -227,7 +227,7 @@ def test_delete_expense_forbidden_for_other_user(user_client, app):
     with app.app_context():
         db = db_module.get_db()
         admin_id = db.execute(
-            "SELECT id FROM users WHERE email = 'admin@spendly.com'"
+            "SELECT id FROM users WHERE email = 'yash.lakhani+admin@smartsensesolutions.com'"
         ).fetchone()["id"]
         db.execute(
             "INSERT INTO expenses (user_id, title, amount, category, date) "
@@ -244,7 +244,7 @@ def test_admin_can_delete_any_expense(admin_client, app):
     with app.app_context():
         db = db_module.get_db()
         user_id = db.execute(
-            "SELECT id FROM users WHERE email = 'nitish@example.com'"
+            "SELECT id FROM users WHERE email = 'yash.lakhani@smartsensesolutions.com'"
         ).fetchone()["id"]
         expense_id = db.execute(
             "SELECT id FROM expenses WHERE user_id = ? LIMIT 1", (user_id,)

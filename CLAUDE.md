@@ -33,8 +33,8 @@ The app initialises and seeds the database automatically on first run (see `data
 **Default dev credentials (seeded on empty DB):**
 | Email | Password | Role |
 |---|---|---|
-| admin@spendly.com | admin123 | admin |
-| nitish@example.com | user123 | user |
+| yash.lakhani+admin@smartsensesolutions.com | Smart@12345 | admin |
+| yash.lakhani@smartsensesolutions.com | Smart@12345 | user |
 
 ## Running Tests
 

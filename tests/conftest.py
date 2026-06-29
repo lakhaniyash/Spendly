@@ -24,13 +24,13 @@ def client(app):
 
 @pytest.fixture
 def user_client(client):
-    client.post("/login", data={"email": "nitish@example.com", "password": "user123"})
+    client.post("/login", data={"email": "yash.lakhani@smartsensesolutions.com", "password": "Smart@12345"})
     return client
 
 
 @pytest.fixture
 def admin_client(client):
-    client.post("/login", data={"email": "admin@spendly.com", "password": "admin123"})
+    client.post("/login", data={"email": "yash.lakhani+admin@smartsensesolutions.com", "password": "Smart@12345"})
     return client
 
 

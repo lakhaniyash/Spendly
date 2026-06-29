@@ -1,13 +1,18 @@
 import os
-from datetime import date
+import secrets
+from datetime import date, datetime, timedelta
 from flask import (Flask, render_template, redirect, url_for,
-                   request, session, flash, abort)
+                   request, session, flash, abort, make_response, g)
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, close_db, init_db, seed_db
-from auth import login_required, role_required
+from auth import (login_required, role_required,
+                  generate_refresh_token, validate_refresh_token,
+                  revoke_refresh_token, revoke_all_user_refresh_tokens,
+                  REFRESH_TOKEN_DAYS)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-change-in-production')
+app.permanent_session_lifetime = timedelta(hours=2)
 
 app.teardown_appcontext(close_db)
 
@@ -17,6 +22,51 @@ with app.app_context():
 
 CATEGORIES = ["Food", "Transport", "Utilities", "Entertainment",
               "Shopping", "Health", "Education", "Other"]
+
+PASSWORD_RESET_EXPIRY_HOURS = 1
+
+
+def _set_refresh_cookie(response, token):
+    response.set_cookie(
+        'refresh_token', token,
+        max_age=REFRESH_TOKEN_DAYS * 24 * 3600,
+        httponly=True,
+        samesite='Lax',
+        secure=False,  # set True behind HTTPS in production
+    )
+
+
+def _now_str():
+    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+
+
+# ------------------------------------------------------------------ #
+# Auth hooks — refresh token auto-login + cookie rotation            #
+# ------------------------------------------------------------------ #
+
+@app.before_request
+def auto_login_via_refresh_token():
+    if 'user_id' not in session:
+        token = request.cookies.get('refresh_token')
+        if token:
+            db = get_db()
+            user = validate_refresh_token(db, token)
+            if user:
+                revoke_refresh_token(db, token)
+                new_token = generate_refresh_token(db, user['id'])
+                g.pending_refresh_token = new_token
+                session.permanent = True
+                session['user_id'] = user['id']
+                session['user_name'] = user['name']
+                session['user_role'] = user['role']
+
+
+@app.after_request
+def attach_refresh_token_cookie(response):
+    token = getattr(g, 'pending_refresh_token', None)
+    if token:
+        _set_refresh_cookie(response, token)
+    return response
 
 
 # ------------------------------------------------------------------ #
@@ -53,11 +103,15 @@ def register():
         db.commit()
         user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         session.clear()
+        session.permanent = True
         session['user_id'] = user['id']
         session['user_name'] = user['name']
         session['user_role'] = user['role']
+        refresh_tok = generate_refresh_token(db, user['id'])
         flash("Welcome to Spendly!", "success")
-        return redirect(url_for('dashboard'))
+        resp = make_response(redirect(url_for('dashboard')))
+        _set_refresh_cookie(resp, refresh_tok)
+        return resp
     return render_template("register.html")
 
 
@@ -73,20 +127,94 @@ def login():
         if not user or not check_password_hash(user['password_hash'], password):
             return render_template("login.html", error="Invalid email or password.")
         session.clear()
+        session.permanent = True
         session['user_id'] = user['id']
         session['user_name'] = user['name']
         session['user_role'] = user['role']
+        refresh_tok = generate_refresh_token(db, user['id'])
         flash(f"Welcome back, {user['name']}!", "success")
-        return redirect(url_for('dashboard'))
+        resp = make_response(redirect(url_for('dashboard')))
+        _set_refresh_cookie(resp, refresh_tok)
+        return resp
     return render_template("login.html")
 
 
 @app.route("/logout")
 @login_required
 def logout():
+    old_token = request.cookies.get('refresh_token')
+    if old_token:
+        revoke_refresh_token(get_db(), old_token)
     session.clear()
     flash("You have been signed out.", "success")
-    return redirect(url_for('landing'))
+    resp = make_response(redirect(url_for('landing')))
+    resp.delete_cookie('refresh_token')
+    return resp
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if user:
+            db.execute(
+                "UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0",
+                (user['id'],)
+            )
+            token = secrets.token_urlsafe(32)
+            expires_at = (datetime.utcnow() + timedelta(hours=PASSWORD_RESET_EXPIRY_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
+            db.execute(
+                "INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)",
+                (user['id'], token, expires_at)
+            )
+            db.commit()
+            reset_url = url_for('reset_password', token=token, _external=True)
+            return render_template("forgot_password.html", sent=True, dev_reset_url=reset_url)
+        return render_template("forgot_password.html", sent=True, dev_reset_url=None)
+    return render_template("forgot_password.html", sent=False, dev_reset_url=None)
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    db = get_db()
+    reset = db.execute(
+        """SELECT pr.user_id, u.email
+           FROM password_resets pr
+           JOIN users u ON pr.user_id = u.id
+           WHERE pr.token = ? AND pr.used = 0 AND pr.expires_at > ?""",
+        (token, _now_str())
+    ).fetchone()
+    if not reset:
+        return render_template("reset_password.html", invalid=True)
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+        if not password or len(password) < 8:
+            return render_template("reset_password.html", token=token,
+                                   email=reset['email'],
+                                   error="Password must be at least 8 characters.")
+        if password != confirm:
+            return render_template("reset_password.html", token=token,
+                                   email=reset['email'],
+                                   error="Passwords do not match.")
+        db.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(password), reset['user_id'])
+        )
+        db.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token,))
+        revoke_all_user_refresh_tokens(db, reset['user_id'])
+        db.commit()
+        flash("Password reset successfully. Please sign in with your new password.", "success")
+        return redirect(url_for('login'))
+
+    return render_template("reset_password.html", token=token, email=reset['email'])
 
 
 @app.route("/terms")

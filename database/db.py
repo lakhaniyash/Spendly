@@ -42,6 +42,26 @@ def init_db():
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            token      TEXT    UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            revoked    INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            token      TEXT    UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used       INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
     """)
     db.commit()
 
@@ -54,12 +74,12 @@ def seed_db():
     db.executemany(
         "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
         [
-            ("Admin", "admin@spendly.com", generate_password_hash("admin123"), "admin"),
-            ("Nitish Kumar", "nitish@example.com", generate_password_hash("user123"), "user"),
+            ("Admin", "yash.lakhani+admin@smartsensesolutions.com", generate_password_hash("Smart@12345"), "admin"),
+            ("Yash Lakhani", "yash.lakhani@smartsensesolutions.com", generate_password_hash("Smart@12345"), "user"),
         ]
     )
     user_id = db.execute(
-        "SELECT id FROM users WHERE email = ?", ("nitish@example.com",)
+        "SELECT id FROM users WHERE email = ?", ("yash.lakhani@smartsensesolutions.com",)
     ).fetchone()["id"]
     db.executemany(
         "INSERT INTO expenses (user_id, title, amount, category, date, note) VALUES (?, ?, ?, ?, ?, ?)",
