@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Your profile</h1>
+            <p class="page-subtitle">Manage your account details</p>
+        </div>
+    </div>
+
+    <div class="auth-card">
+        {% if error %}
+        <div class="auth-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('profile') }}">
+            <div class="form-group">
+                <label for="name">Full name</label>
+                <input type="text" id="name" name="name" class="form-input"
+                       value="{{ user.name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" class="form-input"
+                       value="{{ user.email }}" disabled>
+                <p class="profile-email-note">Email cannot be changed.</p>
+            </div>
+            <div class="form-group">
+                <label style="font-size:0.8rem; color: var(--ink-muted); font-weight:600;
+                               text-transform:uppercase; letter-spacing:0.04em;">
+                    Role
+                </label>
+                <span class="role-badge {{ 'role-admin' if user.role == 'admin' else 'role-user' }}">
+                    {{ user.role }}
+                </span>
+            </div>
+
+            <hr class="form-divider">
+
+            <p style="font-size:0.85rem; font-weight:600; color:var(--ink-soft); margin-bottom:1rem;">
+                Change password <span style="font-weight:400; color:var(--ink-faint);">(leave blank to keep current)</span>
+            </p>
+
+            <div class="form-group">
+                <label for="current_password">Current password</label>
+                <input type="password" id="current_password" name="current_password"
+                       class="form-input" placeholder="Required to set a new password">
+            </div>
+            <div class="form-group">
+                <label for="new_password">New password</label>
+                <input type="password" id="new_password" name="new_password"
+                       class="form-input" placeholder="Min. 8 characters">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-submit" style="width:auto; padding: 0.65rem 1.5rem;">
+                    Save changes
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="btn-ghost">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

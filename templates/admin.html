@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Admin — Spendly{% endblock %}
+
+{% block content %}
+<div class="dashboard-section">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Admin panel</h1>
+            <p class="page-subtitle">Manage users and view platform activity</p>
+        </div>
+    </div>
+
+    <div class="stats-grid admin-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total users</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total expenses</div>
+            <div class="stat-value">{{ total_expenses }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total tracked</div>
+            <div class="stat-value">₹{{ "%.0f"|format(total_amount) }}</div>
+        </div>
+    </div>
+
+    <!-- Users table -->
+    <div class="table-card" style="margin-bottom: 2rem;">
+        <div class="table-card-header">
+            <span class="table-card-title">Users</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="expense-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Change role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.name }}</td>
+                        <td style="color:var(--ink-muted);">{{ u.email }}</td>
+                        <td>
+                            <span class="role-badge {{ 'role-admin' if u.role == 'admin' else 'role-user' }}">
+                                {{ u.role }}
+                            </span>
+                        </td>
+                        <td style="color:var(--ink-faint); font-size:0.85rem;">
+                            {{ u.created_at[:10] if u.created_at else '—' }}
+                        </td>
+                        <td>
+                            {% if u.id != session.user_id %}
+                            <form method="POST"
+                                  action="{{ url_for('admin_change_role', id=u.id) }}"
+                                  style="display:flex; gap:0.5rem; align-items:center;">
+                                <select name="role" class="form-input"
+                                        style="width:auto; padding:0.3rem 0.6rem; font-size:0.8rem;">
+                                    <option value="user" {{ 'selected' if u.role == 'user' }}>user</option>
+                                    <option value="admin" {{ 'selected' if u.role == 'admin' }}>admin</option>
+                                </select>
+                                <button type="submit" class="btn-sm btn-sm-edit">Save</button>
+                            </form>
+                            {% else %}
+                            <span style="font-size:0.8rem; color:var(--ink-faint);">You</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent expenses -->
+    <div class="table-card">
+        <div class="table-card-header">
+            <span class="table-card-title">Recent expenses (all users)</span>
+        </div>
+        {% if recent_expenses %}
+        <div style="overflow-x: auto;">
+            <table class="expense-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in recent_expenses %}
+                    <tr>
+                        <td style="color:var(--ink-muted);">{{ exp.user_name }}</td>
+                        <td>{{ exp.date }}</td>
+                        <td>{{ exp.title }}</td>
+                        <td><span class="category-badge">{{ exp.category }}</span></td>
+                        <td class="amount-cell">₹{{ "%.0f"|format(exp.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No expenses recorded yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

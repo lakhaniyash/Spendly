@@ -1,0 +1,35 @@
+{#
+  ProtectedRoute equivalent for Jinja2.
+
+  Import in any template:
+    {% from 'macros.html' import protected %}
+
+  Render content only for logged-in users:
+    {% call protected() %}
+      <p>Visible to any signed-in user.</p>
+    {% endcall %}
+
+  Render content for a single role:
+    {% call protected('admin') %}
+      <a href="/admin">Admin panel</a>
+    {% endcall %}
+
+  Render content for any of several roles:
+    {% call protected(['admin', 'moderator']) %}
+      <button>Moderate content</button>
+    {% endcall %}
+#}
+
+{% macro protected(role=None) %}
+    {% if 'user_id' in session %}
+        {% if role is none %}
+            {{ caller() }}
+        {% elif role is string %}
+            {% if session.user_role == role %}
+                {{ caller() }}
+            {% endif %}
+        {% elif session.user_role in role %}
+            {{ caller() }}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
