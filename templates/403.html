@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Access denied — Spendly{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-inner">
+        <div class="error-code">403</div>
+        <h1 class="error-title">Access denied</h1>
+        <p class="error-body">
+            You don't have permission to view this page.
+            If you think this is a mistake, contact your administrator.
+        </p>
+        <a href="{{ url_for('dashboard') }}" class="btn-primary">Back to dashboard</a>
+    </div>
+</div>
+{% endblock %}
